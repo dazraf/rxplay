@@ -40,7 +40,7 @@ public class RxPlayTests {
       .flatMap(it -> it)                    // pop out the data observable from the future
       .timeout(500, TimeUnit.MILLISECONDS)  // make sure we don't wait long!
       .subscribe(                           // now consume!
-        receivedResult::addAndGet,          // collect how many results we got
+        receivedResult::addAndGet,          // collect the sum of results
         exceptionsReceived::add);           // we should see a timeout exception from here
 
     assertEquals(receivedResult.get(), 3);
