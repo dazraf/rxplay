@@ -19,7 +19,7 @@ public class RxPlayTests {
   private static final Logger logger = LoggerFactory.getLogger(RxPlayTests.class);
 
   @Test
-  public void handlingFlakyConnectionsAndSlowProducersTest () throws Exception {
+  public void handlingFlakyConnectionsAndSlowProducersTest () throws Throwable {
     AtomicInteger receivedResult = new AtomicInteger();
     ArrayList<Throwable> exceptionsReceived = new ArrayList<>();
 
@@ -33,7 +33,6 @@ public class RxPlayTests {
       Observable.from(connectionFactory.create()).subscribe(h);
     });
 
-
     // now build a pipeline off that
     connection
       .doOnError(t -> logger.error("fail")) // just for logging - we should see the connection failures
@@ -41,12 +40,12 @@ public class RxPlayTests {
       .flatMap(it -> it)                    // pop out the data observable from the future
       .timeout(500, TimeUnit.MILLISECONDS)  // make sure we don't wait long!
       .subscribe(                           // now consume!
-        n -> receivedResult.addAndGet(1),   // collect how many results we got
-        exceptionsReceived::add);    // we should see a timeout exception from here
+        receivedResult::addAndGet,          // collect how many results we got
+        exceptionsReceived::add);           // we should see a timeout exception from here
 
     assertEquals(receivedResult.get(), 3);
     assertEquals(exceptionsReceived.size(), 1);
-    assertNotNull(exceptionsReceived.get(0));
-    assertTrue(exceptionsReceived.get(0) instanceof TimeoutException);
+    Throwable theException = exceptionsReceived.get(0);
+    assertTrue(theException instanceof TimeoutException);
   }
 }
