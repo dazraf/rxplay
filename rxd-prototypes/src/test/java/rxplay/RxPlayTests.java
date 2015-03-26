@@ -1,11 +1,13 @@
-package fuzz.rxplay;
+package rxplay;
 
-import fuzz.rxplay.util.Factory0;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.subjects.BehaviorSubject;
+import rxplay.daflake.FlakyConnectionFactory;
+import rxplay.daflake.FlakyResultObservableFactory;
+import rxplay.util.Factory0;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
@@ -13,7 +15,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class RxPlayTests {
   private static final Logger logger = LoggerFactory.getLogger(RxPlayTests.class);
@@ -48,4 +51,6 @@ public class RxPlayTests {
     Throwable theException = exceptionsReceived.get(0);
     assertTrue(theException instanceof TimeoutException);
   }
+
+
 }

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sbe:messageSchema xmlns:sbe="https://raw.githubusercontent.com/real-logic/simple-binary-encoding/1.0.3-RC2/main/resources/fpl/SimpleBinary1-0.xsd"
+                   package="rxd.domain"
+                   id="1"
+                   version="0"
+                   semanticVersion="5.2"
+                   description="Code generation unit test support"
+                   byteOrder="littleEndian">
+
+    <types>
+        <composite name="messageHeader" description="Message identifiers and length of message root">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="templateId" primitiveType="uint16"/>
+            <type name="schemaId" primitiveType="uint16"/>
+            <type name="version" primitiveType="uint16"/>
+        </composite>
+        <composite name="groupSizeEncoding" description="Repeating group dimensions">
+            <type name="blockLength" primitiveType="uint16"/>
+            <type name="numInGroup" primitiveType="uint8"/>
+        </composite>
+        <composite name="varDataEncoding">
+            <type name="length" primitiveType="uint8"/>
+            <type name="varData" primitiveType="uint8" length="0" characterEncoding="UTF-8"/>
+        </composite>
+    </types>
+    <types>
+        <composite name="CreateRequestChannel">
+            <type name="requestId" primitiveType="char" length="36"/>
+        </composite>
+
+        <enum name="BooleanType" encodingType="uint8">
+            <validValue name="FALSE">0</validValue>
+            <validValue name="TRUE">1</validValue>
+        </enum>
+    </types>
+    <sbe:message name="CreateRequestChannel" id="1" description="Initiate a request channel">
+        <field name="requestId" id="1" type="char" length="36"/>
+        <data name="make" id="2" type="varDataEncoding" semanticType="Payload"/>
+    </sbe:message>
+</sbe:messageSchema>

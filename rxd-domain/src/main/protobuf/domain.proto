@@ -1,0 +1,27 @@
+package rxplay.domain;
+option java_package = "rxplay.domain";
+
+message CreateRequestChannel {
+    required string commandId = 1;
+    required string commandType = 2;
+    optional bytes payload = 3; // inline parameters
+}
+
+// stream of data chunks with names
+// multiple chunks can be transferred with the same name
+message Chunk {
+    required string commandId = 1;
+    required string name = 2;
+    required bytes payload = 3;
+}
+
+// close the stream
+message CloseStream {
+    required string commandId = 1;
+    optional bytes payload = 2;
+}
+
+message CloseStreamWithException {
+    required string commandId = 1;
+    optional bytes payload = 2;
+}

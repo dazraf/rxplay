@@ -1,4 +1,4 @@
-package fuzz.rxplay.util;
+package rxplay.util;
 
 public interface Factory0<T> {
   T create();

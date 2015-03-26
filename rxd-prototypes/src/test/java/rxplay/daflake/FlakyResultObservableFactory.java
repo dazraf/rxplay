@@ -1,7 +1,7 @@
-package fuzz.rxplay;
+package rxplay.daflake;
 
-import fuzz.rxplay.util.Factory0;
 import rx.Observable;
+import rxplay.util.Factory0;
 
 public class FlakyResultObservableFactory implements Factory0<Observable<Integer>> {
   public Observable<Integer> create() {

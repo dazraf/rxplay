@@ -1,7 +1,7 @@
-package fuzz.rxplay;
+package rxplay.daflake;
 
 import com.google.common.util.concurrent.Futures;
-import fuzz.rxplay.util.Factory0;
+import rxplay.util.Factory0;
 
 import java.util.concurrent.Future;
 
