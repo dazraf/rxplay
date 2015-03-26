@@ -1,4 +1,4 @@
-package rxd.server;
+package io.rxd.common.net;
 
 import com.mongodb.DBObject;
 import com.mongodb.DefaultDBEncoder;

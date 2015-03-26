@@ -1,4 +1,4 @@
-package rxd.server;
+package io.rxd.common.net;
 
 import org.bson.ByteBuf;
 

@@ -1,4 +1,4 @@
-package rxd.server;
+package io.rxd.client;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;

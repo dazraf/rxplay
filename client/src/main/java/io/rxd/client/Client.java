@@ -1,4 +1,4 @@
-package rxd.server;
+package io.rxd.client;
 
 import com.mongodb.BasicDBObject;
 import io.netty.bootstrap.Bootstrap;
@@ -9,6 +9,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.rxd.common.net.BSONObjectToByteEncoder;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;

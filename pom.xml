@@ -7,10 +7,10 @@
     <artifactId>rxd</artifactId>
     <version>1.0-SNAPSHOT</version>
     <modules>
-        <module>domain</module>
-        <module>prototypes</module>
-        <module>server</module>
         <module>common</module>
+        <module>server</module>
+        <module>client</module>
+        <module>prototypes</module>
     </modules>
     <packaging>pom</packaging>
 
@@ -52,16 +52,6 @@
                 <version>1.0.7</version>
             </dependency>
             <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>1.7.10</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-simple</artifactId>
-                <version>1.7.10</version>
-            </dependency>
-            <dependency>
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
                 <version>4.0.25.Final</version>
@@ -75,6 +65,16 @@
                 <groupId>org.mongodb</groupId>
                 <artifactId>mongodb-driver-async</artifactId>
                 <version>3.0.0-beta2</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>1.7.7</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>1.7.10</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
