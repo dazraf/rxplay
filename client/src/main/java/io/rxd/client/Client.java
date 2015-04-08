@@ -1,20 +1,31 @@
 package io.rxd.client;
 
-import com.mongodb.BasicDBObject;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
-import io.netty.channel.EventLoopGroup;
+import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioSocketChannel;
-import io.rxd.common.net.BSONObjectToByteEncoder;
-
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.rxd.common.domain.Document;
+import io.rxd.common.domain.UpsertAllCommand;
+import io.rxd.common.net.BootstrapFactory;
+import io.rxd.common.net.ChunkByteBufCodec;
+import io.rxd.common.net.CommandDataMUX;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Client {
+  private static final Logger logger = LoggerFactory.getLogger(Client.class);
+
+  private String host;
+  private int port;
+  private Channel channel;
+  private EventLoopGroup workerGroup = new NioEventLoopGroup();
+
+  public Client(String host, int port) {
+    this.host = host;
+    this.port = port;
+  }
+
   public static void main(String[] args) throws Exception {
     String host = "localhost";
     int port;
@@ -23,36 +34,56 @@ public class Client {
     } else {
       port = 8080;
     }
-    EventLoopGroup workerGroup = new NioEventLoopGroup();
-
+    Client client = new Client(host, port);
     try {
-      Bootstrap b = new Bootstrap(); // (1)
-      b.group(workerGroup); // (2)
-      b.channel(NioSocketChannel.class); // (3)
-      b.option(ChannelOption.SO_KEEPALIVE, true); // (4)
-      b.handler(new ChannelInitializer<SocketChannel>() {
-        @Override
-        public void initChannel(SocketChannel ch) throws Exception {
-          ch.pipeline()
-            .addLast(new BSONObjectToByteEncoder())
-            .addLast(new ClientHandler());
-        }
-      });
+      client.start();
 
-      // Start the client.
-      ChannelFuture f = b.connect(host, port).sync(); // (5)
-      boolean terminate = false;
-      while (!terminate) {
-        BasicDBObject obj = new BasicDBObject();
-        obj.put("siblings", 2);
-        f.channel().writeAndFlush(obj);
-        terminate = new BufferedReader(new InputStreamReader(System.in)).readLine().length() > 0;
-      }
-      // f.channel().writeAndFlush(ByteBufUtil.encodeString(f.channel().alloc(), CharBuffer.wrap("hello"), Charset.defaultCharset()));
-      // Wait until the connection is closed.
-      f.channel().closeFuture().sync();
+      UpsertAllCommand command = new UpsertAllCommand("life", "family");
+      Document doc = Document.parse("{ 'name': {'first': 'Aris', 'last': 'Pez' } }");
+      command.incoming().subscribe(
+        System.out::println,
+        (Throwable t) -> System.out.println("failed"),
+        () -> System.out.println("completed")
+      );
+
+      client.write(command);
+      client.blockUntilDisconnected();
     } finally {
-      workerGroup.shutdownGracefully();
+      client.stop();
     }
+  }
+
+  public void start() throws InterruptedException {
+    logger.info("setting up bootstrap");
+    Bootstrap bootstrap = BootstrapFactory.createClient(workerGroup, new ChannelHandler[] {
+      new LengthFieldPrepender(4),
+      new LengthFieldBasedFrameDecoder(16384, 0, 4, 0, 4),
+      new ChunkByteBufCodec(),
+      new CommandDataMUX("client"),
+      new SimpleClientHandler()
+    });
+
+    logger.info("setup bootstrap");
+
+    // Start the client.
+    logger.info("connecting to {}:{}", host, port);
+    ChannelFuture f = bootstrap.connect(host, port).sync(); // (5)
+    logger.info("connected to {}:{}", host, port);
+    channel = f.channel();
+  }
+
+  public void write(Object object) {
+    channel.writeAndFlush(object);
+  }
+
+  public void stop() {
+    logger.info("stopping");
+    workerGroup.shutdownGracefully();
+    logger.info("stopped");
+  }
+
+  private void blockUntilDisconnected() throws InterruptedException {
+    // Wait until the connection is closed.
+    channel.closeFuture().sync();
   }
 }

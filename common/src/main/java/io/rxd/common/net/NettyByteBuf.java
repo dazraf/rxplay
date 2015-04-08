@@ -6,12 +6,17 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 
-final class NettyByteBuf implements ByteBuf {
+final public class NettyByteBuf implements ByteBuf {
+
+  private final int writerOffset;
+  private final int readerOffset;
 
   private io.netty.buffer.ByteBuf proxied;
   private boolean isWriting = true;
 
   public NettyByteBuf(final io.netty.buffer.ByteBuf proxied) {
+    this.writerOffset = proxied.writerIndex();
+    this.readerOffset = proxied.readerIndex();
     this.proxied = proxied;
   }
 
@@ -20,18 +25,14 @@ final class NettyByteBuf implements ByteBuf {
     this.isWriting = isWriting;
   }
 
-  io.netty.buffer.ByteBuf asByteBuf() {
-    return proxied;
-  }
-
   @Override
   public int capacity() {
-    return proxied.capacity();
+    return proxied.capacity() - writerOffset;
   }
 
   @Override
   public ByteBuf put(final int index, final byte b) {
-    proxied.setByte(index, b);
+    proxied.setByte(index + writerOffset, b);
     return this;
   }
 
@@ -75,25 +76,26 @@ final class NettyByteBuf implements ByteBuf {
   @Override
   public int limit() {
     if (isWriting) {
-      return proxied.writerIndex() + remaining();
+      return proxied.writerIndex() + remaining() - writerOffset;
     } else {
-      return proxied.readerIndex() + remaining();
+      return proxied.readerIndex() + remaining() - readerOffset;
     }
   }
 
   @Override
   public ByteBuf position(final int newPosition) {
     if (isWriting) {
-      proxied.writerIndex(newPosition);
+      proxied.writerIndex(newPosition + writerOffset);
     } else {
-      proxied.readerIndex(newPosition);
+      proxied.readerIndex(newPosition + readerOffset);
     }
     return this;
   }
 
   @Override
   public ByteBuf clear() {
-    proxied.clear();
+    proxied.readerIndex(readerOffset);
+    proxied.writerIndex(writerOffset);
     return this;
   }
 
@@ -138,9 +140,9 @@ final class NettyByteBuf implements ByteBuf {
   @Override
   public int position() {
     if (isWriting) {
-      return proxied.writerIndex();
+      return proxied.writerIndex() - writerOffset;
     } else {
-      return proxied.readerIndex();
+      return proxied.readerIndex() - readerOffset;
     }
   }
 
