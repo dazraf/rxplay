@@ -13,6 +13,8 @@ import io.rxd.common.net.CommandDataMUX;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.rxd.common.net.CommandDataMUX.Mode.CLIENT;
+
 public class Client {
   private static final Logger logger = LoggerFactory.getLogger(Client.class);
 
@@ -38,9 +40,9 @@ public class Client {
     try {
       client.start();
 
-      UpsertAllCommand command = new UpsertAllCommand("life", "family");
+      UpsertAllCommand command = new UpsertAllCommand().withDatabaseName("life").withCollectionName("people");
       Document doc = Document.parse("{ 'name': {'first': 'Aris', 'last': 'Pez' } }");
-      command.incoming().subscribe(
+      command.results().subscribe(
         System.out::println,
         (Throwable t) -> System.out.println("failed"),
         () -> System.out.println("completed")
@@ -59,7 +61,7 @@ public class Client {
       new LengthFieldPrepender(4),
       new LengthFieldBasedFrameDecoder(16384, 0, 4, 0, 4),
       new ChunkByteBufCodec(),
-      new CommandDataMUX("client"),
+      new CommandDataMUX(CLIENT),
       new SimpleClientHandler()
     });
 

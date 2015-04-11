@@ -6,7 +6,7 @@ import io.rxd.common.net.Chunk;
 import java.io.IOException;
 import java.util.UUID;
 
-public class CommandCompletedChunk extends Chunk {
+public class CommandCompletedChunk extends Chunk<Void> {
   public final static byte CODE = 2;
 
   public CommandCompletedChunk(UUID commandId) {
@@ -25,5 +25,10 @@ public class CommandCompletedChunk extends Chunk {
   @Override
   protected byte getChunkCode() {
     return CODE;
+  }
+
+  @Override
+  public Void get() {
+    return null;
   }
 }

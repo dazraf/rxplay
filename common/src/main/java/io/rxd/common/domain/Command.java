@@ -8,7 +8,7 @@ import rx.subjects.Subject;
 
 import java.util.UUID;
 
-public class Command extends Domain {
+public class Command<TParameters extends Domain, TResults extends Domain> extends Domain {
   private final static UUID EMPTY_UUID = new UUID(0, 0);
   private String sessionId = "";
 
@@ -16,17 +16,17 @@ public class Command extends Domain {
   private UUID id = EMPTY_UUID;
 
   @JsonIgnore
-  private Subject<Document, Document> incoming = PublishSubject.create();
+  private Subject<TResults, TResults> results = PublishSubject.create();
 
   @JsonIgnore
-  private Subject<Document, Document> outgoing = PublishSubject.create();
+  private Subject<TParameters, TParameters> parameters = PublishSubject.create();
 
-  public Observable<Document> incoming() {
-    return incoming;
+  public Observable<TResults> results() {
+    return results;
   }
 
-  public Observer<Document> outgoing() {
-    return outgoing;
+  public Observer<TParameters> parameters() {
+    return parameters;
   }
 
   /// INTERNALS - MAKE PACKAGE ONLY
@@ -44,12 +44,12 @@ public class Command extends Domain {
     return id;
   }
 
-  public Observer<Document> incomingObserver() {
-    return incoming;
+  public Observer<TResults> resultsObserver() {
+    return results;
   }
 
-  public Observable<Document> outgoingObservable() {
-    return outgoing;
+  public Observable<TParameters> parametersObservable() {
+    return parameters;
   }
 
   public String getSessionId() {

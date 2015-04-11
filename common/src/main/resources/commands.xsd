@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:jxb="http://java.sun.com/xml/ns/jaxb"
+           xmlns:inheritance="http://jaxb2-commons.dev.java.net/basic/inheritance"
+           jxb:extensionBindingPrefixes="inheritance"
+           jxb:version="2.1"
+           targetNamespace="http://rxd.io/common/domain">
+
+    <xs:complexType name="EchoCommand">
+        <xs:annotation>
+            <xs:appinfo>
+                <inheritance:extends>io.rxd.common.domain.Command&lt;Document,Document&gt;</inheritance:extends>
+            </xs:appinfo>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="databaseName" type="xs:string"/>
+            <xs:element name="collectionName" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="UpsertAllCommand">
+        <xs:annotation>
+            <xs:appinfo>
+                <inheritance:extends>io.rxd.common.domain.Command&lt;Document,RecordKey&gt;</inheritance:extends>
+            </xs:appinfo>
+        </xs:annotation>
+        <xs:sequence>
+            <xs:element name="databaseName" type="xs:string"/>
+            <xs:element name="collectionName" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="QueryCommand">
+        <xs:sequence>
+            <xs:element name="databaseName" type="xs:string"/>
+            <xs:element name="collectionName" type="xs:string"/>
+            <xs:element name="queryExpression" type="xs:string"/>
+        </xs:sequence>
+    </xs:complexType>
+</xs:schema>

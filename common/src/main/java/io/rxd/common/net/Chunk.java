@@ -7,17 +7,15 @@ import de.undercouch.bson4jackson.BsonFactory;
 import io.netty.buffer.ByteBuf;
 import io.rxd.common.domain.Command;
 import io.rxd.common.domain.Document;
-import io.rxd.common.net.chunks.CommandCompletedChunk;
-import io.rxd.common.net.chunks.CommandRequestChunk;
-import io.rxd.common.net.chunks.DataChunk;
-import io.rxd.common.net.chunks.ExceptionChunk;
+import io.rxd.common.domain.Domain;
+import io.rxd.common.net.chunks.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.UUID;
 
-public abstract class Chunk {
+public abstract class Chunk<T> {
   protected static final Logger logger = LoggerFactory.getLogger(Chunk.class);
   protected static final LazyDBDecoder bsonDecoder = new LazyDBDecoder();
   protected static final ObjectMapper mapper = new ObjectMapper(new BsonFactory());
@@ -35,6 +33,15 @@ public abstract class Chunk {
 
   public static Chunk create(UUID commandId, Document document) {
     return new DataChunk(commandId, document);
+  }
+
+  public static Chunk create(UUID commandId, Domain object) {
+    if (object instanceof Command)
+      return create(commandId, (Command)object);
+    else if (object instanceof Document)
+      return create(commandId, (Document)object);
+    else
+      return new ObjectChunk(commandId, object);
   }
 
   public static Chunk create( UUID commandId, Throwable exception) {
@@ -57,6 +64,8 @@ public abstract class Chunk {
           return new CommandCompletedChunk(buffer);
         case ExceptionChunk.CODE:
           return new ExceptionChunk(buffer);
+        case ObjectChunk.CODE:
+          return new ObjectChunk(buffer);
         default:
           throw new ProtocolException("Serialisers don't match!");
       }
@@ -87,20 +96,16 @@ public abstract class Chunk {
     return this instanceof DataChunk;
   }
 
+  boolean isObject() {
+    return this instanceof ObjectChunk;
+  }
+
   boolean isCompleted() {
     return this instanceof CommandCompletedChunk;
   }
 
   boolean isException() {
     return this instanceof ExceptionChunk;
-  }
-
-  public Command getCommand() {
-    return null;
-  }
-
-  public Document getDocument() {
-    return null;
   }
 
   public Throwable getThrowable() {
@@ -132,5 +137,5 @@ public abstract class Chunk {
 
   protected abstract byte getChunkCode();
 
-
+  public abstract T get();
 }

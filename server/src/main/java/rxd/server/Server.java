@@ -3,8 +3,6 @@ package rxd.server;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 import io.rxd.common.domain.Command;
@@ -18,13 +16,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.functions.Action1;
 
+import static io.rxd.common.net.CommandDataMUX.Mode.SERVER;
+
 public class Server {
   private static final Logger logger = LoggerFactory.getLogger(Server.class);
   private int port;
   private EventLoopGroup bossGroup = new NioEventLoopGroup(); // (1)
   private EventLoopGroup workerGroup = new NioEventLoopGroup();
   private ChunkByteBufCodec chunkedCodec = new ChunkByteBufCodec();
-  private CommandDataMUX commandDataMUX = new CommandDataMUX("server");
+  private CommandDataMUX commandDataMUX = new CommandDataMUX(SERVER);
   private CommandDispatcher commandDispatcher = new CommandDispatcher();
   private Channel channel;
 
@@ -42,7 +42,7 @@ public class Server {
       commandDispatcher
     });
 
-    // Bind and start to accept incoming connections.
+    // Bind and start to accept results connections.
     logger.info("binding to port {}", port);
     ChannelFuture f = bootstrap.bind(port).sync(); // (7)
     logger.info("bound to port {}", port);
@@ -74,12 +74,12 @@ public class Server {
       server.registerCommandHandler(UpsertAllCommand.class, c -> {
         try {
           logger.info("processing upsert command");
-          c.outgoing().onNext(Document.parse("{ 'result': 1}"));
-          c.outgoing().onCompleted();
+          c.parameters().onNext(Document.parse("{ 'result': 1}"));
+          c.parameters().onCompleted();
           logger.info("finished upsert command");
         } catch (Exception e) {
           logger.error("failed to process upsert command", e);
-          c.outgoing().onError(e);
+          c.parameters().onError(e);
         }
       });
       server.blockUntilDisconnected(); // will never return

@@ -12,7 +12,7 @@ import io.rxd.common.net.NettyByteBuf;
 import java.io.IOException;
 import java.util.UUID;
 
-public class DataChunk extends Chunk {
+public class DataChunk extends Chunk<Document> {
   public final static byte CODE = 1;
   private final Document document;
 
@@ -42,7 +42,7 @@ public class DataChunk extends Chunk {
   }
 
   @Override
-  public Document getDocument() {
+  public Document get() {
     return document;
   }
 

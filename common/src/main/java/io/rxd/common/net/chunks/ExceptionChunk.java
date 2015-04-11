@@ -8,7 +8,7 @@ import io.rxd.common.net.Chunk;
 import java.io.IOException;
 import java.util.UUID;
 
-public class ExceptionChunk extends Chunk {
+public class ExceptionChunk extends Chunk<Throwable> {
   public final static byte CODE = 3;
   private final Throwable throwable;
 
@@ -32,9 +32,8 @@ public class ExceptionChunk extends Chunk {
     return CODE;
   }
 
-
   @Override
-  public Throwable getThrowable() {
+  public Throwable get() {
     return throwable;
   }
 }

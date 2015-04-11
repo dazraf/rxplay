@@ -1,5 +1,6 @@
 package io.rxd.common.domain;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DBObject;
 import com.mongodb.util.JSON;
 import org.bson.BSONObject;
@@ -8,8 +9,9 @@ import java.text.ParseException;
 import java.util.Map;
 import java.util.Set;
 
-public class Document implements BSONObject {
+public class Document extends Domain implements BSONObject {
   private DBObject dbObject;
+  private final static String KEYFIELD = "__rxd_key";
 
   public Document(DBObject dbObject) {
     if (dbObject == null)
@@ -87,5 +89,24 @@ public class Document implements BSONObject {
   @Override
   public boolean equals(Object obj) {
     return (obj != null && obj.toString().equals(this.toString()));
+  }
+
+  public RecordKey getKey() {
+    if (dbObject.containsField(KEYFIELD)) {
+      DBObject key = (DBObject) dbObject.get(KEYFIELD);
+      return new RecordKey((String)key.get("id"), (long)key.get("version"));
+    } else {
+      return RecordKey.EMPTYKEY;
+    }
+  }
+
+  public Document withKey(RecordKey key) {
+    if (!dbObject.containsField(KEYFIELD)) {
+      dbObject.put(KEYFIELD, new BasicDBObject());
+    }
+    DBObject dbKey = (DBObject)dbObject.get(KEYFIELD);
+    dbKey.put("id", key.getId());
+    dbKey.put("version", key.getVersion());
+    return this;
   }
 }

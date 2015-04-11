@@ -9,7 +9,7 @@ import io.rxd.common.net.Chunk;
 
 import java.io.IOException;
 
-public class CommandRequestChunk extends Chunk {
+public class CommandRequestChunk extends Chunk<Command> {
   public final static byte CODE = 0;
   private final Command command;
 
@@ -34,7 +34,8 @@ public class CommandRequestChunk extends Chunk {
     return CODE;
   }
 
-  public Command getCommand() {
+  @Override
+  public Command get() {
     return command;
   }
 
