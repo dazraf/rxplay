@@ -1,87 +1,73 @@
 package rxd.server;
 
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.name.Named;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.EventLoopGroup;
 import io.rxd.common.domain.Command;
-import io.rxd.common.domain.Document;
-import io.rxd.common.domain.UpsertAllCommand;
-import io.rxd.common.net.BootstrapFactory;
-import io.rxd.common.net.ChunkByteBufCodec;
-import io.rxd.common.net.CommandDataMUX;
 import io.rxd.common.net.CommandDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.functions.Action1;
+import rxd.server.injection.ServerModule;
 
-import static io.rxd.common.net.CommandDataMUX.Mode.SERVER;
+import static rxd.server.injection.ServerModule.CHILD_EVENTLOOP_GROUP;
+import static rxd.server.injection.ServerModule.PARENT_EVENTLOOP_GROUP;
 
 public class Server {
   private static final Logger logger = LoggerFactory.getLogger(Server.class);
-  private int port;
-  private EventLoopGroup bossGroup = new NioEventLoopGroup(); // (1)
-  private EventLoopGroup workerGroup = new NioEventLoopGroup();
-  private ChunkByteBufCodec chunkedCodec = new ChunkByteBufCodec();
-  private CommandDataMUX commandDataMUX = new CommandDataMUX(SERVER);
-  private CommandDispatcher commandDispatcher = new CommandDispatcher();
+  private final ServerBootstrap bootstrap;
+  private final EventLoopGroup bossGroup;
+  private final EventLoopGroup workerGroup;
+  private final CommandDispatcher commandDispatcher;
   private Channel channel;
 
-  public Server(int port) {
-    this.port = port;
+  @Inject
+  public Server(ServerBootstrap bootstrap,
+                @Named(PARENT_EVENTLOOP_GROUP) EventLoopGroup bossGroup,
+                @Named(CHILD_EVENTLOOP_GROUP) EventLoopGroup workerGroup,
+                CommandDispatcher commandDispatcher) {
+    this.bootstrap = bootstrap;
+    this.bossGroup = bossGroup;
+    this.workerGroup = workerGroup;
+    this.commandDispatcher = commandDispatcher;
   }
 
-  public void start() throws Exception {
-    logger.info("setting up bootstrap");
-    ServerBootstrap bootstrap = BootstrapFactory.createServer(bossGroup, workerGroup, new ChannelHandler[] {
-      new LengthFieldPrepender(4),
-      new LengthFieldBasedFrameDecoder(16384, 0, 4, 0, 4),
-      chunkedCodec,
-      commandDataMUX,
-      commandDispatcher
-    });
-
+  public void start(int port) throws Exception {
     // Bind and start to accept results connections.
-    logger.info("binding to port {}", port);
+    logger.info("starting on port {}...", port);
     ChannelFuture f = bootstrap.bind(port).sync(); // (7)
     logger.info("bound to port {}", port);
     channel = f.channel();
-    logger.info("setup");
-  }
-
-  public <T extends Command> void registerCommandHandler(Class<T> klass, Action1<T> handler) {
-    commandDispatcher.registerCommandHandler(klass, handler);
+    logger.info("started");
   }
 
   public void stop() {
-    logger.info("setting up bootstrap");
-
+    logger.info("stopping ..");
     workerGroup.shutdownGracefully();
     bossGroup.shutdownGracefully();
+    logger.info("stopped");
+  }
+
+  public <T extends Command> void registerCommandHandler(Class<T> klass, Action1<T> callback) {
+    this.commandDispatcher.registerCommandHandler(klass, callback);
   }
 
   public static void main(String[] args) throws Exception {
+    Injector injector = Guice.createInjector(new ServerModule());
+    Server server = injector.getInstance(Server.class);
     int port;
     if (args.length > 0) {
       port = Integer.parseInt(args[0]);
     } else {
       port = 8080;
     }
-    Server server = new Server(port);
     try {
-      server.start();
-      server.registerCommandHandler(UpsertAllCommand.class, c -> {
-        try {
-          logger.info("processing upsert command");
-          c.parameters().onNext(Document.parse("{ 'result': 1}"));
-          c.parameters().onCompleted();
-          logger.info("finished upsert command");
-        } catch (Exception e) {
-          logger.error("failed to process upsert command", e);
-          c.parameters().onError(e);
-        }
-      });
+      server.start(port);
       server.blockUntilDisconnected(); // will never return
     } finally {
       server.stop();

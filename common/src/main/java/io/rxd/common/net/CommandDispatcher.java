@@ -22,6 +22,10 @@ public class CommandDispatcher extends SimpleChannelInboundHandler<Command> {
     return this;
   }
 
+  public <T extends Command> void removeCommandHandler(Class<T> klass) {
+    this.handlers.remove(klass);
+  }
+
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, Command msg) throws Exception {
     Action1 handler = handlers.get(msg.getClass());

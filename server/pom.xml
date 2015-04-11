@@ -38,5 +38,9 @@
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver-async</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+        </dependency>
     </dependencies>
 </project>

@@ -1,5 +1,7 @@
 package io.rxd;
 
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.*;
@@ -13,7 +15,9 @@ import io.rxd.common.net.*;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rxd.server.EchoServerHandler;
+import rxd.server.Server;
+import rxd.server.handlers.EchoServerHandler;
+import rxd.server.injection.ServerModule;
 
 import java.text.ParseException;
 import java.util.UUID;
@@ -122,27 +126,14 @@ public class CommandStackTests {
   }
 
   @Test
-  public void commandInvocationTest() throws InterruptedException, ParseException {
-    EventLoopGroup bossGroup = new NioEventLoopGroup();
-    EventLoopGroup workerGroup = new NioEventLoopGroup();
-
-    CommandDispatcher commandDispatcher = new CommandDispatcher();
-
+  public void commandInvocationTest() throws Exception {
+    Injector injector = Guice.createInjector(new ServerModule());
+    Server server = injector.getInstance(Server.class);
     CountDownLatch latch = new CountDownLatch(4);
-    registerEchoCommandHandler(commandDispatcher, latch);
-
-    ServerBootstrap serverBootstrap = BootstrapFactory.createServer(bossGroup, workerGroup, new ChannelHandler[]{
-      new LengthFieldPrepender(4),
-      new LengthFieldBasedFrameDecoder(16384, 0, 4, 0, 4),
-      new ChunkByteBufCodec(),
-      new CommandDataMUX(SERVER),
-      commandDispatcher
-    });
-
-    ChannelFuture serverFuture = serverBootstrap.bind(PORT).sync(); // (7)
+    registerEchoCommandHandler(injector.getInstance(CommandDispatcher.class), latch);
+    server.start(PORT);
 
     EventLoopGroup clientGroup = new NioEventLoopGroup();
-
     Bootstrap clientBootstrap = BootstrapFactory.createClient(clientGroup, new ChannelHandler[]{
       new LengthFieldPrepender(4),
       new LengthFieldBasedFrameDecoder(16384, 0, 4, 0, 4),
@@ -179,14 +170,13 @@ public class CommandStackTests {
       latch.await();
     } finally {
       channel.close();
-      serverFuture.channel().close();
+      server.stop();
       clientGroup.shutdownGracefully();
-      bossGroup.shutdownGracefully();
-      workerGroup.shutdownGracefully();
     }
   }
 
   private void registerEchoCommandHandler(CommandDispatcher commandDispatcher, CountDownLatch latch) {
+    commandDispatcher.removeCommandHandler(EchoCommand.class);
     commandDispatcher.registerCommandHandler(EchoCommand.class, command -> {
       command.parametersObservable().subscribe(
         next -> {
