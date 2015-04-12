@@ -1,31 +1,29 @@
 package io.rxd.client;
 
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import com.google.inject.name.Named;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.channel.*;
-import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
-import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.EventLoopGroup;
 import io.rxd.common.domain.Document;
 import io.rxd.common.domain.UpsertAllCommand;
-import io.rxd.common.net.BootstrapFactory;
-import io.rxd.common.net.ChunkByteBufCodec;
-import io.rxd.common.net.CommandDataMUX;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.rxd.common.net.CommandDataMUX.Mode.CLIENT;
-
 public class Client {
   private static final Logger logger = LoggerFactory.getLogger(Client.class);
-
-  private String host;
-  private int port;
+  private final Bootstrap bootstrap;
+  private final EventLoopGroup workerGroup;
   private Channel channel;
-  private EventLoopGroup workerGroup = new NioEventLoopGroup();
 
-  public Client(String host, int port) {
-    this.host = host;
-    this.port = port;
+  @Inject
+  public Client(Bootstrap bootstrap,
+                @Named(ClientModule.CLIENT_EVENTLOOP_GROUP) EventLoopGroup workerGroup) {
+    this.bootstrap = bootstrap;
+    this.workerGroup = workerGroup;
   }
 
   public static void main(String[] args) throws Exception {
@@ -36,9 +34,10 @@ public class Client {
     } else {
       port = 8080;
     }
-    Client client = new Client(host, port);
+    Injector injector = Guice.createInjector(new ClientModule());
+    Client client = injector.getInstance(Client.class);
     try {
-      client.start();
+      client.start(host, port);
 
       UpsertAllCommand command = new UpsertAllCommand().withDatabaseName("life").withCollectionName("people");
       Document doc = Document.parse("{ 'name': {'first': 'Aris', 'last': 'Pez' } }");
@@ -55,27 +54,16 @@ public class Client {
     }
   }
 
-  public void start() throws InterruptedException {
-    logger.info("setting up bootstrap");
-    Bootstrap bootstrap = BootstrapFactory.createClient(workerGroup, new ChannelHandler[] {
-      new LengthFieldPrepender(4),
-      new LengthFieldBasedFrameDecoder(16384, 0, 4, 0, 4),
-      new ChunkByteBufCodec(),
-      new CommandDataMUX(CLIENT),
-      new SimpleClientHandler()
-    });
-
-    logger.info("setup bootstrap");
-
+  public void start(String host, int port) throws InterruptedException {
     // Start the client.
-    logger.info("connecting to {}:{}", host, port);
-    ChannelFuture f = bootstrap.connect(host, port).sync(); // (5)
+    logger.info("connecting to {}:{}...", host, port);
+    ChannelFuture f = bootstrap.connect(host, port).sync();
     logger.info("connected to {}:{}", host, port);
     channel = f.channel();
   }
 
-  public void write(Object object) {
-    channel.writeAndFlush(object);
+  public void write(Object object) throws InterruptedException {
+    channel.writeAndFlush(object).sync();
   }
 
   public void stop() {

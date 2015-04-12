@@ -1,5 +1,6 @@
 package io.rxd.common.net;
 
+import com.google.inject.Inject;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.MessageToMessageCodec;
 import io.rxd.common.domain.Command;
@@ -57,6 +58,7 @@ public class CommandDataMUX extends MessageToMessageCodec<Chunk, Command<Domain,
   private ConcurrentHashMap<UUID, Observer<Domain>> cachedIncomingObservers = new ConcurrentHashMap<>();
   private final String name;
 
+  @Inject
   public CommandDataMUX(Mode mode) {
     this.mode = mode;
     this.name = mode == Mode.CLIENT ? "client" : "server";

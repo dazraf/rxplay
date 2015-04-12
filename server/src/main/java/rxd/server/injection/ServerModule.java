@@ -29,6 +29,8 @@ public class ServerModule extends AbstractModule {
 
   @Override
   protected void configure() {
+    bind(CommandDataMUX.Mode.class).toInstance(SERVER);
+    bind(CommandDataMUX.class);
     bind(EventLoopGroup.class)
       .annotatedWith(Names.named(PARENT_EVENTLOOP_GROUP))
       .to(NioEventLoopGroup.class)
@@ -41,6 +43,7 @@ public class ServerModule extends AbstractModule {
     bind(Server.class).in(Singleton.class);
   }
 
+  @Singleton
   @Provides
   private ServerBootstrap provideServerBootstrap(@Named(PARENT_EVENTLOOP_GROUP) EventLoopGroup parentGroup,
                                                  @Named(CHILD_EVENTLOOP_GROUP) EventLoopGroup childGroup,
@@ -57,11 +60,7 @@ public class ServerModule extends AbstractModule {
     return bootstrap;
   }
 
-  @Provides
-  private CommandDataMUX provideCommandDataMUX() {
-    return new CommandDataMUX(SERVER);
-  }
-
+  @Singleton
   @Provides
   private CommandDispatcher provideCommandDispatcher() {
     return registerCommands(new CommandDispatcher());

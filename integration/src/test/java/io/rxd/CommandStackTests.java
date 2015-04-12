@@ -8,6 +8,8 @@ import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
+import io.rxd.client.Client;
+import io.rxd.client.ClientModule;
 import io.rxd.common.domain.Document;
 import io.rxd.common.domain.EchoCommand;
 import io.rxd.common.domain.UpsertAllCommand;
@@ -24,8 +26,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.rxd.common.net.CommandDataMUX.Mode.CLIENT;
-import static io.rxd.common.net.CommandDataMUX.Mode.SERVER;
 import static org.junit.Assert.assertEquals;
 
 public class CommandStackTests {
@@ -127,30 +127,19 @@ public class CommandStackTests {
 
   @Test
   public void commandInvocationTest() throws Exception {
-    Injector injector = Guice.createInjector(new ServerModule());
-    Server server = injector.getInstance(Server.class);
+    Injector serverInjector = Guice.createInjector(new ServerModule());
+    Server server = serverInjector.getInstance(Server.class);
+
     CountDownLatch latch = new CountDownLatch(4);
-    registerEchoCommandHandler(injector.getInstance(CommandDispatcher.class), latch);
+    registerEchoCommandHandler(serverInjector.getInstance(CommandDispatcher.class), latch);
     server.start(PORT);
 
-    EventLoopGroup clientGroup = new NioEventLoopGroup();
-    Bootstrap clientBootstrap = BootstrapFactory.createClient(clientGroup, new ChannelHandler[]{
-      new LengthFieldPrepender(4),
-      new LengthFieldBasedFrameDecoder(16384, 0, 4, 0, 4),
-      new ChunkByteBufCodec(),
-      new CommandDataMUX(CLIENT),
-      new SimpleChannelInboundHandler<Object>() {
-        @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-          logger.info("got {}", msg.toString());
-        }
-      }
-    });
-
-    Channel channel = clientBootstrap.connect("localhost", PORT).sync().channel();
+    Injector clientInjector = Guice.createInjector(new ClientModule());
+    Client client = clientInjector.getInstance(Client.class);
+    client.start("localhost", PORT);
     try {
       EchoCommand echoCommand = new EchoCommand().withDatabaseName("databaseName").withCollectionName("collectionName");
-      channel.writeAndFlush(echoCommand).sync();
+      client.write(echoCommand);
       echoCommand.results().subscribe(
         next -> {
           logger.info("client received: {}", next);
@@ -165,17 +154,17 @@ public class CommandStackTests {
           latch.countDown();
         }
       );
-      echoCommand.parameters().onNext(createDocument(0));
+      echoCommand.parameters().onNext(createADocument(0));
       echoCommand.parameters().onCompleted();
       latch.await();
     } finally {
-      channel.close();
+      client.stop();
       server.stop();
-      clientGroup.shutdownGracefully();
     }
   }
 
   private void registerEchoCommandHandler(CommandDispatcher commandDispatcher, CountDownLatch latch) {
+    logger.info("registering echo command handler");
     commandDispatcher.removeCommandHandler(EchoCommand.class);
     commandDispatcher.registerCommandHandler(EchoCommand.class, command -> {
       command.parametersObservable().subscribe(
@@ -202,12 +191,11 @@ public class CommandStackTests {
     return Document.parse("{ 'name': {'first': 'Aris', 'last': 'Pez' } }");
   }
 
-  private Document createDocument(int id) {
+  private Document createADocument(int id) {
     try {
       return Document.parse("{ 'id': " + id + ", 'name': {'first': 'Aris', 'last': 'Pez' } }");
     } catch (ParseException e) {
       throw new RuntimeException(e);
     }
   }
-
 }
